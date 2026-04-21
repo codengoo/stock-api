@@ -10,6 +10,7 @@ class MAResponse(BaseModel):
     last_price: Optional[float]
     ma20: Optional[float]
     ma50: Optional[float]
+    ma200: Optional[float]
     source: str
 
 

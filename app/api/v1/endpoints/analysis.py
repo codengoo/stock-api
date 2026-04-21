@@ -35,14 +35,16 @@ def moving_averages(
 ):
     symbol = symbol.upper()
     try:
-        df = fetch_history(symbol=symbol, source=source, length=60)
-        mas = compute_moving_averages(df, periods=[20, 50])
+        df = fetch_history(symbol=symbol, source=source, length=300)
+        print(len(df))
+        mas = compute_moving_averages(df, periods=[20, 50, 200])
         last_price = get_last_price(df)
         return MAResponse(
             symbol=symbol,
             last_price=last_price,
             ma20=mas.get("ma20"),
             ma50=mas.get("ma50"),
+            ma200=mas.get("ma200"),
             source=source,
         )
     except Exception as exc:

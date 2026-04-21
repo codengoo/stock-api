@@ -24,7 +24,7 @@ router = APIRouter()
         502: {"description": UPSTREAM_ERROR_DESCRIPTION},
     },
 )
-def get_price_board(
+def price_board(
     symbols: str = Query(
         ...,
         description="Comma-separated list of stock symbols. Example: VCB,ACB,TCB",
