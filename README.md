@@ -42,142 +42,137 @@ Interactive API documentation:
 
 ## Endpoint Details
 
-### 1. `GET /price-board`
+## Endpoint Details
 
-Returns a real-time price board snapshot for multiple stock symbols.
+### 1. Market Data
 
-Query parameters:
+These endpoints provide real-time and historical market data using `vnstock`.
 
-- `symbols` required: comma-separated list of stock symbols, for example `VCB,ACB,TCB`
-- `source` optional: data source, default is `KBS`
+#### `GET /price-board`
+**Summary**: Real-time price board snapshot for multiple symbols.
 
-Main response fields:
+- **Query Parameters**:
+    - `symbols` (required): Comma-separated list of stock symbols (e.g., `VCB,ACB,TCB`).
+    - `source` (optional): Data source. Default: `KBS`. Supporting `VCI` for some symbols.
 
-- `symbols`: normalized symbol list
-- `source`: selected data source
-- `data`: price board data returned by `vnstock`
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/price-board?symbols=VCB,ACB,TCB&source=KBS"
+    ```
 
-Example:
+#### `GET /quote/intraday/{symbol}`
+**Summary**: Intraday matched-order (tick) data for a single symbol.
 
-```bash
-curl "http://127.0.0.1:8000/price-board?symbols=VCB,ACB,TCB"
-```
+- **Path Parameters**:
+    - `symbol`: Stock symbol (e.g., `VCB`).
+- **Query Parameters**:
+    - `page_size` (optional): Maximum records. Default `100`, Max `10000`.
+    - `source` (optional): Data source. Default: `KBS`.
 
-### 2. `GET /quote/intraday/{symbol}`
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/quote/intraday/VCB?page_size=200"
+    ```
 
-Returns intraday matched-order data for a single stock symbol.
+#### `GET /quote/history/{symbol}`
+**Summary**: Historical price data (OHLCV).
 
-Path parameters:
+- **Path Parameters**:
+    - `symbol`: Stock symbol (e.g., `VCB`).
+- **Query Parameters**:
+    - `start` (optional): Start date (`YYYY-MM-DD`).
+    - `end` (optional): End date (`YYYY-MM-DD`).
+    - `length` (optional): Latest N sessions (takes priority over start/end).
+    - `interval` (optional): `d` (day), `w` (week), `m` (month). Default: `d`.
+    - `source` (optional): Data source. Default: `KBS`.
 
-- `symbol`: stock symbol, for example `VCB`
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/quote/history/VCB?length=30&interval=d"
+    ```
 
-Query parameters:
+---
 
-- `page_size` optional: maximum number of records, default `100`, maximum `10000`
-- `source` optional: data source, default `KBS`
+### 2. Technical Analysis
 
-Main response fields:
+#### `GET /analysis/ma/{symbol}`
+**Summary**: Moving averages (MA20 and MA50) for a symbol.
 
-- `symbol`: stock symbol
-- `page_size`: requested record limit
-- `source`: selected data source
-- `data`: list of intraday ticks
+- **Path Parameters**:
+    - `symbol`: Stock symbol (e.g., `FPT`).
+- **Query Parameters**:
+    - `source` (optional): Data source. Default: `KBS`.
 
-Example:
+- **Response Fields**:
+    - `symbol`: Requested symbol.
+    - `last_price`: Latest closing price.
+    - `ma20`: 20-day simple moving average.
+    - `ma50`: 50-day simple moving average.
 
-```bash
-curl "http://127.0.0.1:8000/quote/intraday/VCB?page_size=200"
-```
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/analysis/ma/FPT"
+    ```
 
-### 3. `GET /quote/history/{symbol}`
+---
 
-Returns historical price data by day, week, or month.
+### 3. Screener
 
-Path parameters:
+#### `GET /screener/suggest`
+**Summary**: Scores stocks based on trend-following rules.
 
-- `symbol`: stock symbol, for example `VCB`
+- **Query Parameters**:
+    - `symbols` (required): Comma-separated list to screen (e.g., `VCB,ACB,TCB,FPT,MWG`).
+    - `source` (optional): Data source. Default: `KBS`.
 
-Query parameters:
+- **Scoring Rules**:
+    - **+2**: Price > MA20 > MA50 (Strong uptrend).
+    - **+1**: Price > MA200 (Long-term positive bias).
 
-- `start` optional: start date in `YYYY-MM-DD` format
-- `end` optional: end date in `YYYY-MM-DD` format
-- `length` optional: latest number of sessions to return
-- `interval` optional: `d`, `w`, `m`, default `d`
-- `source` optional: data source, default `KBS`
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/screener/suggest?symbols=VCB,ACB,TCB,FPT,MWG"
+    ```
 
-Parameter priority:
+---
 
-1. If `length` is provided, the API returns the latest `length` sessions
-2. If `start` and `end` are both provided, the API returns data in that date range
-3. If only `start` is provided, `end` defaults to the current date
-4. If nothing is provided, the API returns the latest `90` sessions
+### 4. Reference Data
 
-Main response fields:
+#### `GET /listing`
+**Summary**: Returns all listed stock symbols.
 
-- `symbol`: stock symbol
-- `interval`: selected interval
-- `source`: selected data source
-- `data`: historical price records
+- **Query Parameters**:
+    - `source` (optional): Data source. Default: `KBS`.
 
-Examples:
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/listing"
+    ```
 
-```bash
-curl "http://127.0.0.1:8000/quote/history/VCB?start=2026-01-01&end=2026-04-01&interval=d"
-curl "http://127.0.0.1:8000/quote/history/VCB?length=30&interval=w"
-```
+#### `GET /company/{symbol}`
+**Summary**: Company profile and overview.
 
-### 4. `GET /listing`
+- **Path Parameters**:
+    - `symbol`: Stock symbol (e.g., `FPT`).
 
-Returns the directory of listed stock symbols.
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/company/FPT"
+    ```
 
-Query parameters:
+---
 
-- `source` optional: data source, default `KBS`
+### 5. System
 
-Main response fields:
+#### `GET /health`
+**Summary**: Simple health check.
 
-- `source`: selected data source
-- `data`: listed symbols
+- **Example**:
+    ```bash
+    curl "http://localhost:8000/health"
+    ```
 
-Example:
-
-```bash
-curl "http://127.0.0.1:8000/listing"
-```
-
-### 5. `GET /company/{symbol}`
-
-Returns company overview data for a listed stock symbol.
-
-Path parameters:
-
-- `symbol`: stock symbol, for example `FPT`
-
-Query parameters:
-
-- `source` optional: data source, default `KBS`
-
-Main response fields:
-
-- `symbol`: stock symbol
-- `source`: selected data source
-- `data`: company overview data
-
-Example:
-
-```bash
-curl "http://127.0.0.1:8000/company/FPT"
-```
-
-### 6. `GET /health`
-
-Checks whether the API is running.
-
-Response:
-
-```json
-{"status":"ok"}
-```
+- **Response**: `{"status": "ok"}`
 
 ## Stop The Application
 
