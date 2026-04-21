@@ -1,7 +1,14 @@
 from typing import Optional
 
 import pandas as pd
-from vnstock import Quote
+from vnstock import Listing, Quote
+
+
+def fetch_all_symbols(source: str) -> list:
+    """Fetch all listed stock symbols for the given source."""
+    df = Listing(source=source).all_symbols()
+    col = "symbol" if "symbol" in df.columns else df.columns[0]
+    return df[col].str.upper().tolist()
 
 
 def fetch_history(symbol: str, source: str, length: int = 260) -> pd.DataFrame:

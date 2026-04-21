@@ -31,3 +31,4 @@ class ScreenerResponse(BaseModel):
 
     total: int
     suggestions: List[StockScore]
+    skipped: List[str] = []

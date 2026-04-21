@@ -4,6 +4,7 @@ from app.core.config import DEFAULT_SOURCE, SUPPORTED_SOURCES, UPSTREAM_ERROR_DE
 from app.schemas.analysis import ScreenerResponse, StockScore
 from app.services.analysis_service import (
     compute_moving_averages,
+    fetch_all_symbols,
     fetch_history,
     get_last_price,
     score_symbol,
@@ -16,39 +17,39 @@ router = APIRouter()
     "/suggest",
     response_model=ScreenerResponse,
     tags=["Screener"],
-    summary="Daily Trend Screener",
+    summary="Daily Trend Screener – Top N",
     description=(
-        "Scores each symbol based on simple trend-following rules using Daily Historical Data.\n\n"
-        "**Scoring Mechanism:**\n"
-        "- **+2 Points**: Price > MA20 > MA50 (Strong short-to-medium term uptrend)\n"
-        "- **+1 Point**: Price > MA200 (Positive long-term bias)\n\n"
-        "**Technical details:**\n"
-        "- At least **260 trading sessions** are fetched per symbol to ensure MA200 can be calculated.\n"
-        "- Symbols that lack sufficient historical data or fail to fetch are skipped and listed in the `skipped` array."
+        "Quét toàn bộ cổ phiếu niêm yết và trả về những cổ phiếu có điểm cao nhất "
+        "dựa trên quy tắc theo xu hướng hàng ngày.\n\n"
+        "**Cơ chế tính điểm:**\n"
+        "- **+2 Điểm**: Giá > MA20 > MA50 (xu hướng tăng ngắn-trung hạn)\n"
+        "- **+1 Điểm**: Giá > MA200 (xu hướng tăng dài hạn)\n\n"
+        "**Chi tiết kỹ thuật:**\n"
+        "- Lấy tối thiểu **260 phiên giao dịch** để tính MA200.\n"
+        "- Các mã thiếu dữ liệu hoặc lỗi khi tải được bỏ qua và liệt kê trong mảng `skipped`."
     ),
-    response_description="Ranked list of stocks sorted by score (highest first), plus details about skipped symbols.",
+    response_description="Top N cổ phiếu có điểm cao nhất (giảm dần), kèm danh sách mã bị bỏ qua.",
     responses={
-        400: {"description": "Missing or invalid `symbols` parameter."},
         502: {"description": UPSTREAM_ERROR_DESCRIPTION},
     },
 )
 def suggest(
-    symbols: str = Query(
-        ...,
-        description="Comma-separated list of stock symbols to screen. Example: VCB,ACB,TCB",
-        examples=["VCB,ACB,TCB"],
+    top_n: int = Query(
+        5,
+        ge=1,
+        le=50,
+        description="Số lượng cổ phiếu điểm cao nhất cần trả về (mặc định: 5, tối đa: 50).",
     ),
     source: str = Query(
         DEFAULT_SOURCE,
         description=f"Data source. Common values: {SUPPORTED_SOURCES}.",
     ),
 ):
-    symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
-    if not symbol_list:
-        raise HTTPException(
-            status_code=400,
-            detail="The stock symbol list must not be empty.",
-        )
+    try:
+        symbol_list = fetch_all_symbols(source)
+    except Exception as exc:
+        from app.core.exceptions import raise_upstream_error
+        raise_upstream_error(exc)
 
     results: list[StockScore] = []
     skipped: list[str] = []
@@ -85,5 +86,6 @@ def suggest(
             skipped.append(sym)
 
     results.sort(key=lambda s: s.score, reverse=True)
+    top_results = results[:top_n]
 
-    return ScreenerResponse(total=len(results), suggestions=results)
+    return ScreenerResponse(total=len(top_results), suggestions=top_results, skipped=skipped)
