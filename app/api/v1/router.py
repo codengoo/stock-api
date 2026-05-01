@@ -1,8 +1,11 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import analysis, market, reference, screener, system
+from app.api.v1.endpoints import analysis, gold, market, reference, screener, system
 
 api_router = APIRouter()
+
+# Gold prices: /gold/prices
+api_router.include_router(gold.router)
 
 # Market data: /price-board, /quote/intraday/{symbol}, /quote/history/{symbol}
 api_router.include_router(market.router)
